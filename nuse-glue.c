@@ -107,6 +107,7 @@ int nuse_close(int fd)
 	ret = g_exported->sock_close(nuse_fd_table[fd].nuse_sock->kern_sock);
 	if (ret < 0)
 		errno = -ret;
+	free(nuse_fd_table[fd].nuse_sock);
 
 end:
 	nuse_fd_table[fd].nuse_sock = 0;
@@ -117,9 +118,17 @@ weak_alias(nuse_close, close);
 
 ssize_t nuse_recvmsg(int fd, struct msghdr *msghdr, int flags)
 {
-	struct SimSocket *kernel_socket = nuse_fd_table[fd].nuse_sock->kern_sock;
+	struct SimSocket *kernel_socket;
 	ssize_t ret;
 
+	if (!nuse_fd_table[fd].nuse_sock) {
+		ret = host_recvmsg(nuse_fd_table[fd].real_fd, msghdr, flags);
+		if (ret < 0)
+			errno = -ret;
+		return ret;
+	}
+
+	kernel_socket = nuse_fd_table[fd].nuse_sock->kern_sock;
 	if (nuse_fd_table[fd].nuse_sock->flags & O_NONBLOCK)
 		flags |= MSG_DONTWAIT;
 	ret = g_exported->sock_recvmsg(kernel_socket, msghdr, flags);
@@ -131,9 +140,17 @@ weak_alias(nuse_recvmsg, recvmsg);
 
 ssize_t nuse_sendmsg(int fd, const struct msghdr *msghdr, int flags)
 {
-	struct SimSocket *kernel_socket = nuse_fd_table[fd].nuse_sock->kern_sock;
+	struct SimSocket *kernel_socket;
 	ssize_t ret;
 
+	if (!nuse_fd_table[fd].nuse_sock) {
+		ret = host_sendmsg(nuse_fd_table[fd].real_fd, msghdr, flags);
+		if (ret < 0)
+			errno = -ret;
+		return ret;
+	}
+
+	kernel_socket = nuse_fd_table[fd].nuse_sock->kern_sock;
 	if (nuse_fd_table[fd].nuse_sock->flags & O_NONBLOCK)
 		flags |= MSG_DONTWAIT;
 	ret = g_exported->sock_sendmsg(kernel_socket, msghdr, flags);
@@ -175,9 +192,17 @@ weak_alias(nuse_sendmmsg, __sendmmsg);
 
 int nuse_getsockname(int fd, struct sockaddr *name, socklen_t *namelen)
 {
-	struct SimSocket *kernel_socket = nuse_fd_table[fd].nuse_sock->kern_sock;
+	struct SimSocket *kernel_socket;
 	int ret;
 
+	if (!nuse_fd_table[fd].nuse_sock) {
+		ret = host_getsockname(nuse_fd_table[fd].real_fd, name, namelen);
+		if (ret < 0)
+			errno = -ret;
+		return ret;
+	}
+
+	kernel_socket = nuse_fd_table[fd].nuse_sock->kern_sock;
 	ret = g_exported->sock_getsockname(kernel_socket, name, (int *)namelen);
 	return ret;
 }
@@ -185,9 +210,17 @@ weak_alias(nuse_getsockname, getsockname);
 
 int nuse_getpeername(int fd, struct sockaddr *name, socklen_t *namelen)
 {
-	struct SimSocket *kernel_socket = nuse_fd_table[fd].nuse_sock->kern_sock;
+	struct SimSocket *kernel_socket;
 	int ret;
 
+	if (!nuse_fd_table[fd].nuse_sock) {
+		ret = host_getpeername(nuse_fd_table[fd].real_fd, name, namelen);
+		if (ret < 0)
+			errno = -ret;
+		return ret;
+	}
+
+	kernel_socket = nuse_fd_table[fd].nuse_sock->kern_sock;
 	ret = g_exported->sock_getsockname(kernel_socket, name, (int *)namelen);
 	return ret;
 }
@@ -195,9 +228,18 @@ weak_alias(nuse_getpeername, getpeername);
 
 int nuse_bind(int fd, const struct sockaddr *name, socklen_t namelen)
 {
-	struct SimSocket *kernel_socket = nuse_fd_table[fd].nuse_sock->kern_sock;
+	struct SimSocket *kernel_socket;
 	int ret;
+	struct sockaddr_in *in_addr = (struct sockaddr_in *)name;
 
+	if (!nuse_fd_table[fd].nuse_sock) {
+		ret = host_bind(nuse_fd_table[fd].real_fd, name, namelen);
+		if (ret < 0)
+			errno = -ret;
+		return ret;
+	}
+
+	kernel_socket = nuse_fd_table[fd].nuse_sock->kern_sock;
 	ret = g_exported->sock_bind(kernel_socket, name, namelen);
 	return ret;
 }
@@ -205,9 +247,18 @@ weak_alias(nuse_bind, bind);
 
 int nuse_connect(int fd, const struct sockaddr *addr, socklen_t len)
 {
-	struct SimSocket *kernel_socket = nuse_fd_table[fd].nuse_sock->kern_sock;
+	struct SimSocket *kernel_socket;
 	int ret;
+	struct sockaddr_in *in_addr = (struct sockaddr_in *)addr;
 
+	if (!nuse_fd_table[fd].nuse_sock) {
+		ret = host_connect(nuse_fd_table[fd].real_fd, addr, len);
+		if (ret < 0)
+			errno = -ret;
+		return ret;
+	}
+
+	kernel_socket = nuse_fd_table[fd].nuse_sock->kern_sock;
 	ret = g_exported->sock_connect(kernel_socket, addr, len,
 				       nuse_fd_table[fd].nuse_sock->flags);
 	return ret;
@@ -216,9 +267,17 @@ weak_alias(nuse_connect, connect);
 
 int nuse_listen(int fd, int v1)
 {
-	struct SimSocket *kernel_socket = nuse_fd_table[fd].nuse_sock->kern_sock;
+	struct SimSocket *kernel_socket;
 	int retval;
 
+	if (!nuse_fd_table[fd].nuse_sock) {
+		retval = host_listen(nuse_fd_table[fd].real_fd, v1);
+		if (retval < 0)
+			errno = -retval;
+		return retval;
+	}
+
+	kernel_socket = nuse_fd_table[fd].nuse_sock->kern_sock;
 	retval = g_exported->sock_listen(kernel_socket, v1);
 	return retval;
 }
@@ -236,10 +295,23 @@ int lib_sock_shutdown(struct SimSocket *socket, int how)
 
 int nuse_accept4(int fd, struct sockaddr *addr, int *addrlen, int flags)
 {
-	struct SimSocket *kernel_socket = nuse_fd_table[fd].nuse_sock->kern_sock;
+	struct SimSocket *kernel_socket;
 	struct SimSocket *new_socket = NULL;
 	int retval, real_fd;
+	struct sockaddr_in *in_addr = (struct sockaddr_in *)addr;
 
+	if (!nuse_fd_table[fd].nuse_sock) {
+		real_fd = host_accept4(nuse_fd_table[fd].real_fd, addr, (socklen_t *)addrlen, flags);
+		if (real_fd < 0) {
+			errno = -real_fd;
+			return -1;
+		}
+		nuse_fd_table[real_fd].real_fd = real_fd;
+		nuse_fd_table[real_fd].nuse_sock = NULL;
+		return real_fd;
+	}
+
+	kernel_socket = nuse_fd_table[fd].nuse_sock->kern_sock;
 	retval = g_exported->sock_accept(kernel_socket, &new_socket, flags);
 	if (retval < 0) {
 		errno = -retval;
@@ -313,6 +385,9 @@ weak_alias(nuse_writev, writev);
 ssize_t nuse_sendto(int fd, const void *buf, size_t len, int flags,
 			const struct sockaddr *dest_addr, unsigned int addrlen)
 {
+	if (!nuse_fd_table[fd].nuse_sock)
+		return host_sendto(nuse_fd_table[fd].real_fd, buf, len, flags, dest_addr, addrlen);
+
 	struct msghdr msg;
 	struct iovec iov;
 	ssize_t retval;
@@ -833,8 +908,9 @@ nuse_poll(struct pollfd *fds, unsigned int nfds, struct timespec *end_time)
 		}
 	} /* for loop */
 
-	pthread_mutex_destroy(&cond_mutex);
+/*	pthread_mutex_destroy(&cond_mutex);
 	pthread_cond_destroy(&condvar);
+*/
 	g_exported->sock_pollfreewait(table.opaque);
 	return count;
 }

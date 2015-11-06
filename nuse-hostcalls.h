@@ -53,5 +53,12 @@ extern int (*host_getsockopt)(int sockfd, int level, int optname,
 extern int (*host_setsockopt)(int sockfd, int level, int optname,
 			const void *optval, int optlen);
 extern pid_t (*host_getpid)(void);
+extern ssize_t (*host_recvmsg)(int sockfd, struct msghdr *msg, int flags);
+extern int (*host_getsockname)(int sockfd, struct sockaddr *addr, socklen_t *addrlen);
+extern int (*host_getpeername)(int sockfd, struct sockaddr *addr, socklen_t *addrlen);
+extern int (*host_accept4)(int sockfd, struct sockaddr *addr, socklen_t *addrlen, int flags);
+extern ssize_t (*host_sendto)(int sockfd, const void *buf, size_t len, int flags,
+			   const struct sockaddr *dest_addr, socklen_t addrlen);
+extern int (*host_connect)(int sockfd, const struct sockaddr *addr, socklen_t addrlen);
 
 #endif /* NUSE_HOSTCALLS_H */

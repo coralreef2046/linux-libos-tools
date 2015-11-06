@@ -48,6 +48,13 @@ int (*host_getsockopt)(int sockfd, int level, int optname,
 int (*host_setsockopt)(int sockfd, int level, int optname,
 		const void *optval, int optlen) = NULL;
 pid_t (*host_getpid)(void) = NULL;
+ssize_t (*host_recvmsg)(int sockfd, struct msghdr *msg, int flags) = NULL;
+int (*host_getsockname)(int sockfd, struct sockaddr *addr, socklen_t *addrlen) = NULL;
+int (*host_getpeername)(int sockfd, struct sockaddr *addr, socklen_t *addrlen) = NULL;
+int (*host_accept4)(int sockfd, struct sockaddr *addr, socklen_t *addrlen, int flags) = NULL;
+ssize_t (*host_sendto)(int sockfd, const void *buf, size_t len, int flags,
+			   const struct sockaddr *dest_addr, socklen_t addrlen) = NULL;
+int (*host_connect)(int sockfd, const struct sockaddr *addr, socklen_t addrlen) = NULL;
 
 static void *
 nuse_hostcall_resolve_sym(const char *sym)
@@ -92,5 +99,11 @@ void nuse_hostcall_init(void)
 	host_setsockopt = nuse_hostcall_resolve_sym("setsockopt");
 	host_getsockopt = nuse_hostcall_resolve_sym("getsockopt");
 
+	host_recvmsg = nuse_hostcall_resolve_sym("recvmsg");
+	host_getsockname = nuse_hostcall_resolve_sym("getsockname");
+	host_getpeername = nuse_hostcall_resolve_sym("getpeername");
+	host_accept4 = nuse_hostcall_resolve_sym("accept4");
+	host_sendto = nuse_hostcall_resolve_sym("sendto");
+	host_connect = nuse_hostcall_resolve_sym("connect");
 }
 
