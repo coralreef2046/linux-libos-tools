@@ -124,6 +124,7 @@ deliverframes(struct nuse_vif_dpdk *dpdk, struct SimDevice *dev)
 		memcpy(packet.buffer, data, size);
 		lib_dev_rx(dev, packet);
 	}
+	rte_pktmbuf_free(rm0);
 
 	lib_softirq_wakeup();
 }
@@ -161,6 +162,8 @@ nuse_vif_dpdk_write(struct nuse_vif *vif, struct SimDevice *dev,
 	struct nuse_vif_dpdk *dpdk = vif->private;
 
 	rm = rte_pktmbuf_alloc(dpdk->txpool);
+	if (!rm)
+		return;
 	pkt = rte_pktmbuf_append(rm, len);
 	memcpy(pkt, data, len);
 
