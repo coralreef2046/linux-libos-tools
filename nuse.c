@@ -160,8 +160,12 @@ static void *nuse_task_start_trampoline(void *context)
 	}
 
 	if (nuse_fiber_is_stopped(g_exported->task_get_private(ctx->task->s_task))) {
+		task = ctx->task;
 		lib_free(ctx);
 		lib_update_jiffies();
+		if (task->head.prev != LIST_POISON2)
+			list_del(&task->head);
+		free(task);
 		lib_printf("canceled\n");
 		return NULL;
 	}
@@ -240,8 +244,6 @@ void nuse_event_cancel(struct SimKernel *kernel, void *event)
 
 	nuse_fiber_stop(g_exported->task_get_private(task->s_task));
 	/*  nuse_fiber_free (task->private); */
-	if (task->head.prev != LIST_POISON2)
-		list_del(&task->head);
 }
 
 void nuse_task_wait(struct SimKernel *kernel)

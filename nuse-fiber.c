@@ -124,10 +124,7 @@ void nuse_fiber_stop(void *handler)
 {
 	struct NuseFiber *fiber = handler;
 
-	fiber->canceled = 0;
-	if (fiber->timerid)
-		timer_delete(fiber->timerid);
-	fiber->timerid = NULL;
+	fiber->canceled = 1;
 }
 
 int nuse_fiber_is_stopped(void *handler)
